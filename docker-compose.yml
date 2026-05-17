@@ -1,0 +1,63 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: xaigov_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: xaigov
+      POSTGRES_PASSWORD: xaigov_secret
+      POSTGRES_DB: xaigov_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xaigov -d xaigov_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: xaigov_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://xaigov:xaigov_secret@db:5432/xaigov_db
+      DATABASE_URL_SYNC: postgresql://xaigov:xaigov_secret@db:5432/xaigov_db
+    ports:
+      - "8000:8000"
+    volumes:
+      - model_data:/app/app/ml/models
+      - log_data:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: xaigov_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+  model_data:
+  log_data:
