@@ -60,6 +60,13 @@ class Settings(BaseSettings):
                 return False
         return value
 
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def ensure_async_database_url(cls, value):
+        if isinstance(value, str) and value.startswith("postgresql://"):
+            return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return value
+
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
 
 
