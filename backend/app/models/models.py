@@ -52,7 +52,17 @@ class User(Base, TimestampMixin):
 
     decisions: Mapped[List["Decision"]] = relationship("Decision", back_populates="citizen", foreign_keys="Decision.citizen_id")
     reviewed_decisions: Mapped[List["Decision"]] = relationship("Decision", back_populates="officer", foreign_keys="Decision.officer_id")
-    appeals: Mapped[List["Appeal"]] = relationship("Appeal", back_populates="citizen")
+    appeals: Mapped[List["Appeal"]] = relationship(
+    "Appeal",
+    foreign_keys="Appeal.citizen_id",
+    back_populates="citizen"
+   )
+
+    resolved_appeals: Mapped[List["Appeal"]] = relationship(
+    "Appeal",
+    foreign_keys="Appeal.resolved_by",
+    back_populates="resolver"
+)
     audit_logs: Mapped[List["AuditLog"]] = relationship("AuditLog", back_populates="user")
     notifications: Mapped[List["Notification"]] = relationship("Notification", back_populates="user")
 
@@ -131,15 +141,21 @@ class Appeal(Base, TimestampMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     decision_id: Mapped[int] = mapped_column(ForeignKey("decisions.id"))
     citizen_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    status: Mapped[AppealStatus] = mapped_column(SAEnum(AppealStatus), default=AppealStatus.SUBMITTED)
-    reason: Mapped[str] = mapped_column(Text)
-    supporting_documents: Mapped[Optional[str]] = mapped_column(Text)
-    resolution: Mapped[Optional[str]] = mapped_column(Text)
     resolved_by: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id"))
-    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
 
     decision: Mapped["Decision"] = relationship("Decision", back_populates="appeals")
-    citizen: Mapped["User"] = relationship("User", back_populates="appeals", foreign_keys=[citizen_id])
+
+    citizen: Mapped["User"] = relationship(
+        "User",
+        back_populates="appeals",
+        foreign_keys=[citizen_id]
+    )
+
+    resolver: Mapped[Optional["User"]] = relationship(
+    "User",
+    back_populates="resolved_appeals",
+    foreign_keys=[resolved_by]
+)
 
 
 class AuditLog(Base, TimestampMixin):

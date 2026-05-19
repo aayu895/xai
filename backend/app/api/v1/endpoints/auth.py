@@ -20,12 +20,12 @@ async def register(user_data: UserCreate, request: Request, db: AsyncSession = D
 
     hashed_pw   = get_password_hash(user_data.password)
     citizen_id  = f"CIT-{uuid.uuid4().hex[:8].upper()}" if user_data.role == UserRole.CITIZEN else None
-
+    role = user_data.role or UserRole.CITIZEN
     user = User(
         email=user_data.email,
         full_name=user_data.full_name,
         hashed_password=hashed_pw,
-        role=user_data.role,
+        role=role,
         phone=user_data.phone,
         address=user_data.address,
         citizen_id=citizen_id,
@@ -33,14 +33,15 @@ async def register(user_data: UserCreate, request: Request, db: AsyncSession = D
     )
     db.add(user)
     await db.flush()
-
+    ip_address = getattr(request.client, "host", "unknown")
     log = AuditLog(
         user_id=user.id,
         action="user_registered",
         entity_type="user",
         entity_id=user.id,
         new_value={"email": user.email, "role": user.role.value},
-        ip_address=request.client.host if request.client else "unknown",
+        ip_address=ip_address,
+        log_metadata={"user_agent": request.headers.get("user-agent")},
     )
     db.add(log)
     await db.commit()
@@ -67,7 +68,7 @@ async def login(credentials: UserLogin, request: Request, db: AsyncSession = Dep
         entity_type="user",
         entity_id=user.id,
         ip_address=request.client.host if request.client else "unknown",
-        user_agent=request.headers.get("user-agent"),
+        log_metadata={"user_agent": request.headers.get("user-agent")},
     )
     db.add(log)
     await db.commit()

@@ -25,10 +25,11 @@ export default function LoginPage() {
     setError('');
     try {
       await login(email, password);
-      const user = JSON.parse(document.cookie.match(/user=([^;]+)/)?.[1] || '{}');
+      const user = useAuthStore.getState().user;
       const routes: Record<string, string> = { citizen: '/dashboard/citizen', officer: '/dashboard/officer', admin: '/dashboard/admin' };
+      const redirectTo = user ? routes[user.role] : '/dashboard/citizen';
       toast.success(`Welcome back!`);
-      router.push(routes[user?.role] || '/dashboard/citizen');
+      router.push(redirectTo);
     } catch (err: any) {
       setError(err?.response?.data?.detail || 'Invalid email or password');
     }
