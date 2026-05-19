@@ -29,7 +29,7 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
         "http://frontend:3000",
-        "https://xai.vercel.app",
+        "https://xai-omega.vercel.app"
     ]
 
     # ML
