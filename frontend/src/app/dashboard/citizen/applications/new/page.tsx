@@ -42,7 +42,12 @@ export default function NewApplicationPage() {
       setResult(res.data);
       toast.success('Application submitted & AI analysis complete!');
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Submission failed');
+      const detail = err?.response?.data?.detail;
+      const message = Array.isArray(detail)
+        ? detail.map((item: any) => item?.msg || JSON.stringify(item)).join(', ')
+        : detail || err?.message || 'Submission failed';
+      const status = err?.response?.status ? ` (${err.response.status})` : '';
+      toast.error(`Submission failed${status}: ${message}`);
     } finally { setLoading(false); }
   };
 

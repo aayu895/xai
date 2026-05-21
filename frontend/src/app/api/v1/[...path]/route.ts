@@ -13,10 +13,14 @@ async function proxy(request: NextRequest, { params }: { params: { path: string[
   const path = params.path.join('/');
   const search = request.nextUrl.search || '';
   const url = `${getBackendApiUrl()}/${path}${search}`;
-  const headers = new Headers(request.headers);
+  const headers = new Headers();
+  const authorization = request.headers.get('authorization');
+  const contentType = request.headers.get('content-type');
+  const accept = request.headers.get('accept');
 
-  headers.delete('host');
-  headers.delete('content-length');
+  if (authorization) headers.set('authorization', authorization);
+  if (contentType) headers.set('content-type', contentType);
+  if (accept) headers.set('accept', accept);
 
   const hasBody = !['GET', 'HEAD'].includes(request.method);
   let response: Response;
@@ -27,9 +31,13 @@ async function proxy(request: NextRequest, { params }: { params: { path: string[
       body: hasBody ? await request.arrayBuffer() : undefined,
       cache: 'no-store',
     });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
-      { detail: 'Backend API is not reachable. Check BACKEND_API_URL in Vercel.' },
+      {
+        detail: 'Backend API is not reachable. Check BACKEND_API_URL in Vercel.',
+        backendUrl: getBackendApiUrl(),
+        error: error instanceof Error ? error.message : 'Unknown proxy error',
+      },
       { status: 502 },
     );
   }

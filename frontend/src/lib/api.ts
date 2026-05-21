@@ -11,7 +11,9 @@ export const api = axios.create({
 
 // Request interceptor — attach token
 api.interceptors.request.use((config) => {
-  const token = Cookies.get('access_token');
+  const token =
+    Cookies.get('access_token') ||
+    (typeof window !== 'undefined' ? window.localStorage.getItem('access_token') : null);
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -20,9 +22,18 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401) {
-      Cookies.remove('access_token');
-      Cookies.remove('user');
+    const requestUrl = String(error.config?.url || '');
+    const shouldClearSession =
+      error.response?.status === 401 &&
+      (requestUrl.includes('/auth/me') || requestUrl.includes('/auth/login'));
+
+    if (shouldClearSession) {
+      Cookies.remove('access_token', { path: '/' });
+      Cookies.remove('user', { path: '/' });
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('access_token');
+        window.localStorage.removeItem('user');
+      }
       if (typeof window !== 'undefined') window.location.href = '/auth/login';
     }
     return Promise.reject(error);
