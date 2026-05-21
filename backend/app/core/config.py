@@ -65,8 +65,15 @@ class Settings(BaseSettings):
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def ensure_async_database_url(cls, value):
-        if isinstance(value, str) and value.startswith("postgresql://"):
-            return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if isinstance(value, str):
+            value = value.strip()
+            if value.startswith("postgresql://"):
+                return value.replace("postgresql://", "postgresql+asyncpg://", 1)
+            if not value.startswith("postgresql+asyncpg://"):
+                raise ValueError(
+                    "DATABASE_URL must be a full PostgreSQL connection string, "
+                    "for example postgresql+asyncpg://user:password@host:5432/database"
+                )
         return value
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
