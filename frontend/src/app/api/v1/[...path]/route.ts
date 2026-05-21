@@ -5,7 +5,6 @@ const DEFAULT_BACKEND_API_URL = 'https://xai-backend-j704.onrender.com/api/v1';
 function getBackendApiUrl() {
   return (
     process.env.BACKEND_API_URL?.trim() ||
-    process.env.NEXT_PUBLIC_API_URL?.trim() ||
     DEFAULT_BACKEND_API_URL
   ).replace(/\/+$/, '');
 }
